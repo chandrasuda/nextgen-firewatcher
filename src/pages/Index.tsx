@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Camera, Layers, Wind, Eye, Navigation2, Compass } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -25,44 +25,24 @@ interface PathPoint {
   location: string;
   status: "explored" | "critical" | "pending";
   timestamp: string;
+  time: number; // Time in seconds when the point should appear
 }
 
 interface SensorData {
   timestamp: number;
-  accelerometer: { x: number; y: number; z: number };
-  gyroscope: { x: number; y: number; z: number };
+  temperature: number;
+  heartRate: number;
 }
 
 const generateDummyPathData = (): PathPoint[] => {
   return [
-    { id: 1, location: "Entry Point A", status: "explored", timestamp: "10:30 AM" },
-    { id: 2, location: "North Corridor", status: "critical", timestamp: "10:32 AM" },
-    { id: 3, location: "East Wing", status: "pending", timestamp: "10:35 AM" },
-    { id: 4, location: "Central Hall", status: "critical", timestamp: "10:37 AM" },
-    { id: 5, location: "West Section", status: "pending", timestamp: "10:40 AM" },
+    { id: 1, location: "Entry Point A", status: "explored", timestamp: "10:30 AM", time: 10 },
+    { id: 2, location: "North Corridor", status: "critical", timestamp: "10:32 AM", time: 20 },
+    { id: 3, location: "East Wing", status: "pending", timestamp: "10:35 AM", time: 30 },
+    { id: 4, location: "Central Hall", status: "critical", timestamp: "10:37 AM", time: 40 },
+    { id: 5, location: "West Section", status: "pending", timestamp: "10:40 AM", time: 50 },
     // Add more path points as needed
   ];
-};
-
-const generateSensorData = (count: number): SensorData[] => {
-  const data: SensorData[] = [];
-  const now = Date.now();
-  for (let i = 0; i < count; i++) {
-    data.push({
-      timestamp: now - (count - i) * 1000,
-      accelerometer: {
-        x: Math.sin(i * 0.5) * 2,
-        y: Math.cos(i * 0.5) * 2,
-        z: Math.sin(i * 0.3) * 1.5,
-      },
-      gyroscope: {
-        x: Math.sin(i * 0.2) * 45,
-        y: Math.cos(i * 0.2) * 45,
-        z: Math.sin(i * 0.1) * 30,
-      },
-    });
-  }
-  return data;
 };
 
 const Index = () => {
@@ -73,7 +53,65 @@ const Index = () => {
     { id: "glasses-2", name: "Squad Member 1", type: "glasses", status: "online", currentView: "normal" },
   ]);
   const [pathData] = useState<PathPoint[]>(generateDummyPathData());
-  const [sensorData] = useState<SensorData[]>(generateSensorData(50));
+  const [sensorData, setSensorData] = useState<SensorData[]>([]);
+  const [currentTime, setCurrentTime] = useState(0);
+  const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const videoElement = videoRefs.current["drone-1"];
+    if (videoElement) {
+      const handleTimeUpdate = () => {
+        setCurrentTime(videoElement.currentTime);
+      };
+      videoElement.addEventListener("timeupdate", handleTimeUpdate);
+      return () => {
+        videoElement.removeEventListener("timeupdate", handleTimeUpdate);
+      };
+    }
+  }, []);
+
+  useEffect(() => {
+    const videoElement = videoRefs.current["drone-1"];
+    const canvasElement = canvasRef.current;
+    const context = canvasElement?.getContext("2d");
+
+    const analyzeFrame = () => {
+      if (videoElement && context) {
+        context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+        const frame = context.getImageData(0, 0, canvasElement.width, canvasElement.height);
+        const brightness = calculateBrightness(frame.data);
+        generateSensorData(brightness);
+      }
+      requestAnimationFrame(analyzeFrame);
+    };
+
+    if (videoElement && context) {
+      requestAnimationFrame(analyzeFrame);
+    }
+  }, []);
+
+  const calculateBrightness = (data: Uint8ClampedArray) => {
+    let totalBrightness = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const brightness = (r + g + b) / 3;
+      totalBrightness += brightness;
+    }
+    return totalBrightness / (data.length / 4);
+  };
+
+  const generateSensorData = (brightness: number) => {
+    const temperature = brightness / 2; // Example calculation
+    const heartRate = brightness / 4; // Example calculation
+    const timestamp = Date.now();
+    setSensorData((prevData) => [
+      ...prevData,
+      { timestamp, temperature, heartRate },
+    ]);
+  };
 
   const handleViewChange = (feedId: string, view: ViewType) => {
     setFeeds(feeds.map(feed => 
@@ -98,19 +136,16 @@ const Index = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {sectionFeeds.map((feed) => (
   <div key={feed.id} className="video-feed animate-fade-in">
-        {feed.currentView === "normal" ? (
-          <iframe
-            src="https://www.youtube.com/embed/mphHFk5IXsQ?autoplay=1&mute=1"
-            className="rounded-lg w-full h-full"
-            frameBorder="0"
-            allow="autoplay; encrypted-media"
-            allowFullScreen
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Camera className="w-12 h-12 text-white/20" />
-          </div>
-        )}
+        <video
+          ref={(el) => (videoRefs.current[feed.id] = el)}
+          src="/videos/firefighter_video.mp4"
+          className={`rounded-lg w-full h-full ${feed.currentView !== "normal" ? "hidden" : ""}`}
+          autoPlay
+          muted
+        />
+        <div className={`absolute inset-0 flex items-center justify-center ${feed.currentView === "normal" ? "hidden" : ""}`}>
+          <Camera className="w-12 h-12 text-white/20" />
+        </div>
         <div className="video-feed-controls">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-white">{feed.name}</span>
@@ -164,7 +199,8 @@ const Index = () => {
             key={point.id}
             className={`flex items-center p-3 rounded-lg transition-all animate-fade-in
               ${point.status === 'critical' ? 'bg-red-500/10' : 
-                point.status === 'explored' ? 'bg-green-500/10' : 'bg-blue-500/10'}`}
+                point.status === 'explored' ? 'bg-green-500/10' : 'bg-blue-500/10'}
+              ${currentTime >= point.time ? 'highlight' : 'hidden'}`}
           >
             <div className="flex-shrink-0">
               <Navigation2 className={`w-5 h-5 
@@ -189,7 +225,7 @@ const Index = () => {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
       <div className="bg-card rounded-lg p-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">Accelerometer Data</h3>
+          <h3 className="text-lg font-semibold text-white">Temperature Data</h3>
           <Compass className="w-5 h-5 text-primary" />
         </div>
         <ResponsiveContainer width="100%" height={200}>
@@ -197,16 +233,14 @@ const Index = () => {
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
             <XAxis dataKey="timestamp" stroke="#94a3b8" />
             <YAxis stroke="#94a3b8" />
-            <Line type="monotone" dataKey="accelerometer.x" stroke="#FF6B2C" dot={false} />
-            <Line type="monotone" dataKey="accelerometer.y" stroke="#2DD4BF" dot={false} />
-            <Line type="monotone" dataKey="accelerometer.z" stroke="#818CF8" dot={false} />
+            <Line type="monotone" dataKey="temperature" stroke="#FF6B2C" dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
       
       <div className="bg-card rounded-lg p-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white">Gyroscope Data</h3>
+          <h3 className="text-lg font-semibold text-white">Heart Rate Data</h3>
           <Navigation2 className="w-5 h-5 text-secondary" />
         </div>
         <ResponsiveContainer width="100%" height={200}>
@@ -214,9 +248,7 @@ const Index = () => {
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
             <XAxis dataKey="timestamp" stroke="#94a3b8" />
             <YAxis stroke="#94a3b8" />
-            <Line type="monotone" dataKey="gyroscope.x" stroke="#FF6B2C" dot={false} />
-            <Line type="monotone" dataKey="gyroscope.y" stroke="#2DD4BF" dot={false} />
-            <Line type="monotone" dataKey="gyroscope.z" stroke="#818CF8" dot={false} />
+            <Line type="monotone" dataKey="heartRate" stroke="#2DD4BF" dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -244,6 +276,7 @@ const Index = () => {
           {renderSensorDashboard()}
         </div>
       </div>
+      <canvas ref={canvasRef} width="640" height="360" style={{ display: "none" }}></canvas>
     </div>
   );
 };
