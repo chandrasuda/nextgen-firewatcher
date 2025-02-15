@@ -96,51 +96,61 @@ const Index = () => {
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {sectionFeeds.map((feed) => (
-            <div key={feed.id} className="video-feed animate-fade-in">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Camera className="w-12 h-12 text-white/20" />
-              </div>
-              <div className="video-feed-controls">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-white">{feed.name}</span>
-                  <div className="status-indicator online">
-                    <span>Live</span>
-                  </div>
-                </div>
-                <div className="mt-2 flex gap-2 flex-wrap">
-                  <button
-                    onClick={() => handleViewChange(feed.id, "normal")}
-                    className={`feed-button ${feed.currentView === "normal" ? "active" : ""}`}
-                  >
-                    <Camera className="w-4 h-4 inline-block mr-1" />
-                    Normal
-                  </button>
-                  <button
-                    onClick={() => handleViewChange(feed.id, "thermal")}
-                    className={`feed-button ${feed.currentView === "thermal" ? "active" : ""}`}
-                  >
-                    <Wind className="w-4 h-4 inline-block mr-1" />
-                    Thermal
-                  </button>
-                  <button
-                    onClick={() => handleViewChange(feed.id, "segmented")}
-                    className={`feed-button ${feed.currentView === "segmented" ? "active" : ""}`}
-                  >
-                    <Layers className="w-4 h-4 inline-block mr-1" />
-                    Segmented
-                  </button>
-                  <button
-                    onClick={() => handleViewChange(feed.id, "augmented")}
-                    className={`feed-button ${feed.currentView === "augmented" ? "active" : ""}`}
-                  >
-                    <Eye className="w-4 h-4 inline-block mr-1" />
-                    Augmented
-                  </button>
-                </div>
-              </div>
+        {sectionFeeds.map((feed) => (
+  <div key={feed.id} className="video-feed animate-fade-in">
+        {feed.currentView === "normal" ? (
+          <iframe
+            src="https://www.youtube.com/embed/mphHFk5IXsQ?autoplay=1&mute=1"
+            className="rounded-lg w-full h-full"
+            frameBorder="0"
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Camera className="w-12 h-12 text-white/20" />
+          </div>
+        )}
+        <div className="video-feed-controls">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-white">{feed.name}</span>
+            <div className="status-indicator online">
+              <span>Live</span>
             </div>
-          ))}
+          </div>
+          <div className="mt-2 flex gap-2 flex-wrap">
+            <button
+              onClick={() => handleViewChange(feed.id, "normal")}
+              className={`feed-button ${feed.currentView === "normal" ? "active" : ""}`}
+            >
+              <Camera className="w-4 h-4 inline-block mr-1" />
+              Normal
+            </button>
+            <button
+              onClick={() => handleViewChange(feed.id, "thermal")}
+              className={`feed-button ${feed.currentView === "thermal" ? "active" : ""}`}
+            >
+              <Wind className="w-4 h-4 inline-block mr-1" />
+              Thermal
+            </button>
+            <button
+              onClick={() => handleViewChange(feed.id, "segmented")}
+              className={`feed-button ${feed.currentView === "segmented" ? "active" : ""}`}
+            >
+              <Layers className="w-4 h-4 inline-block mr-1" />
+              Segmented
+            </button>
+            <button
+              onClick={() => handleViewChange(feed.id, "augmented")}
+              className={`feed-button ${feed.currentView === "augmented" ? "active" : ""}`}
+            >
+              <Eye className="w-4 h-4 inline-block mr-1" />
+              Augmented
+            </button>
+          </div>
+        </div>
+      </div>
+    ))}
         </div>
       </div>
     );
