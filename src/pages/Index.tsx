@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import moment from "moment";
 import { Camera, Layers, Wind, Eye, Navigation2, Compass } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -8,6 +9,7 @@ import {
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
+  Tooltip,
 } from "recharts";
 
 type ViewType = "normal" | "thermal" | "segmented" | "depth" | "augmented";
@@ -50,7 +52,6 @@ const Index = () => {
     { id: "drone-1", name: "Drone Alpha", type: "drone", status: "online", currentView: "normal" },
     { id: "drone-2", name: "Drone Beta", type: "drone", status: "online", currentView: "normal" },
     { id: "glasses-1", name: "Team Leader", type: "glasses", status: "online", currentView: "normal" },
-    { id: "glasses-2", name: "Squad Member 1", type: "glasses", status: "online", currentView: "normal" },
   ]);
   const [pathData] = useState<PathPoint[]>(generateDummyPathData());
   const [sensorData, setSensorData] = useState<SensorData[]>([]);
@@ -81,7 +82,7 @@ const Index = () => {
         context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
         const frame = context.getImageData(0, 0, canvasElement.width, canvasElement.height);
         const brightness = calculateBrightness(frame.data);
-        generateSensorData(brightness);
+        generateSensorData(brightness, videoElement.currentTime);
       }
       requestAnimationFrame(analyzeFrame);
     };
@@ -103,10 +104,10 @@ const Index = () => {
     return totalBrightness / (data.length / 4);
   };
 
-  const generateSensorData = (brightness: number) => {
+  const generateSensorData = (brightness: number, videoTime: number) => {
     const temperature = brightness / 2; // Example calculation
     const heartRate = brightness / 4; // Example calculation
-    const timestamp = Date.now();
+    const timestamp = videoTime * 1000; // Convert to milliseconds
     setSensorData((prevData) => [
       ...prevData,
       { timestamp, temperature, heartRate },
@@ -133,7 +134,7 @@ const Index = () => {
             <span>All Systems Operational</span>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
         {sectionFeeds.map((feed) => (
   <div key={feed.id} className="video-feed animate-fade-in">
         <video
@@ -222,7 +223,7 @@ const Index = () => {
   );
 
   const renderSensorDashboard = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+    <div className="grid grid-cols-1 gap-6 mt-6">
       <div className="bg-card rounded-lg p-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-white">Temperature Data</h3>
@@ -231,8 +232,13 @@ const Index = () => {
         <ResponsiveContainer width="100%" height={200}>
           <LineChart data={sensorData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-            <XAxis dataKey="timestamp" stroke="#94a3b8" />
+            <XAxis
+              dataKey="timestamp"
+              stroke="#94a3b8"
+              tickFormatter={(tick) => moment(tick).format("mm:ss")}
+            />
             <YAxis stroke="#94a3b8" />
+            <Tooltip labelFormatter={(label) => moment(label).format("mm:ss")} />
             <Line type="monotone" dataKey="temperature" stroke="#FF6B2C" dot={false} />
           </LineChart>
         </ResponsiveContainer>
@@ -246,8 +252,13 @@ const Index = () => {
         <ResponsiveContainer width="100%" height={200}>
           <LineChart data={sensorData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-            <XAxis dataKey="timestamp" stroke="#94a3b8" />
+            <XAxis
+              dataKey="timestamp"
+              stroke="#94a3b8"
+              tickFormatter={(tick) => moment(tick).format("mm:ss")}
+            />
             <YAxis stroke="#94a3b8" />
+            <Tooltip labelFormatter={(label) => moment(label).format("mm:ss")} />
             <Line type="monotone" dataKey="heartRate" stroke="#2DD4BF" dot={false} />
           </LineChart>
         </ResponsiveContainer>
@@ -262,18 +273,20 @@ const Index = () => {
         <p className="text-slate-400">Real-time surveillance and monitoring system</p>
       </header>
       
-      <div className="space-y-8">
-        {renderFeedSection("drone")}
-        {renderFeedSection("glasses")}
-        
-        <div className="space-y-6">
-          <h2 className="text-xl font-semibold text-white">Critical Path Timeline</h2>
-          {renderPathTimeline()}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-8">
+          {renderFeedSection("glasses")}
+          <div className="space-y-6">
+            <h2 className="text-xl font-semibold text-white">Critical Path Timeline</h2>
+            {renderPathTimeline()}
+            
+            <h2 className="text-xl font-semibold text-white mb-4">Sensor Analytics</h2>
+            {renderSensorDashboard()}
+          </div>
         </div>
         
-        <div>
-          <h2 className="text-xl font-semibold text-white mb-4">Sensor Analytics</h2>
-          {renderSensorDashboard()}
+        <div className="space-y-8">
+          {renderFeedSection("drone")}
         </div>
       </div>
       <canvas ref={canvasRef} width="640" height="360" style={{ display: "none" }}></canvas>
