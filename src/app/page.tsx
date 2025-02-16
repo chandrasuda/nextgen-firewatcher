@@ -174,7 +174,6 @@ const Index = () => {
                   feed.currentView !== "normal" ? "hidden" : ""
                 }`}
                 autoPlay
-                muted
                 style={{ transform: "scale(1.25)", transformOrigin: "center" }}
               />
               <div
