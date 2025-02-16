@@ -22,7 +22,12 @@ interface VideoFeed {
   type: "drone" | "glasses";
   status: "online" | "offline";
   currentView: ViewType;
-  videoURL?: string;
+  videoURLs: {
+    normal: string;
+    thermal: string;
+    segmented: string;
+    augmented: string;
+  };
 }
 
 interface PathPoint {
@@ -41,44 +46,42 @@ interface SensorData {
 
 const generateDummyPathData = (): PathPoint[] => {
   return [
-    { id: 1, location: "Entry Point A", status: "explored", timestamp: "10:30 AM", time: 10 },
-    { id: 2, location: "North Corridor", status: "critical", timestamp: "10:32 AM", time: 20 },
-    { id: 3, location: "East Wing", status: "pending", timestamp: "10:35 AM", time: 30 },
-    { id: 4, location: "Central Hall", status: "critical", timestamp: "10:37 AM", time: 40 },
-    { id: 5, location: "West Section", status: "pending", timestamp: "10:40 AM", time: 50 },
-    // Add more path points as needed
+    { id: 1, location: "Entry Point A", status: "explored", timestamp: "10:30 AM", time: 1 },
+    { id: 2, location: "North Corridor", status: "critical", timestamp: "10:32 AM", time: 4 },
+    { id: 3, location: "East Wing", status: "pending", timestamp: "10:35 AM", time: 10 },
+    { id: 4, location: "Central Hall", status: "critical", timestamp: "10:37 AM", time: 15 },
+    { id: 5, location: "West Section", status: "pending", timestamp: "10:40 AM", time: 20 },
   ];
 };
 
 const Index = () => {
   const [feeds, setFeeds] = useState<VideoFeed[]>([
     {
-      id: "drone-1",
-      name: "Drone Alpha",
-      type: "drone",
-      status: "online",
-      currentView: "normal",
-      videoURL:
-        "https://halokeys.com/media/user_upload/283e769660a644798f0eb091a662813e/rawfire.mp4",
-    },
-    {
-      id: "drone-2",
-      name: "Drone Beta",
-      type: "drone",
-      status: "online",
-      currentView: "normal",
-      videoURL:
-        "https://halokeys.com/media/user_upload/fceafdc9c8044418b90aa950ffafb923/sam2_masked_video_1739673702786.mp4",
-    },
-    {
       id: "glasses-1",
       name: "Team Leader",
       type: "glasses",
       status: "online",
       currentView: "normal",
-      videoURL:
-        "https://halokeys.com/media/user_upload/de3ce92f1b4c44329b4483c68868c321/rawfire-VEED.mp4",
-    },
+      videoURLs: {
+        thermal: "https://halokeys.com/media/user_upload/de3ce92f1b4c44329b4483c68868c321/rawfire-VEED.mp4",
+        segmented: "https://halokeys.com/media/user_upload/fceafdc9c8044418b90aa950ffafb923/sam2_masked_video_1739673702786.mp4",
+        normal: "https://halokeys.com/media/user_upload/283e769660a644798f0eb091a662813e/rawfire.mp4",
+        augmented: "https://halokeys.com/media/user_upload/de3ce92f1b4c44329b4483c68868c321/rawfire-VEED.mp4" // Using normal video as fallback
+      }
+    }, 
+    {
+      id: "drones-1",
+      name: "Drone 1",
+      type: "drone",
+      status: "online",
+      currentView: "normal",
+      videoURLs: {
+        thermal: "https://docs.halokeys.com/media/user_upload/e41fc88fb52a43acbf3d90b46d388ed5/drone_view_2-VEED.mp4",
+        segmented: "https://halokeys.com/media/user_upload/fceafdc9c8044418b90aa950ffafb923/sam2_masked_video_1739673702786.mp4",
+        normal: "https://docs.halokeys.com/media/user_upload/012a7571c6b44e4f9090290c673ad413/drone_view_2.mp4",
+        augmented: "https://halokeys.com/media/user_upload/de3ce92f1b4c44329b4483c68868c321/rawfire-VEED.mp4" // Using normal video as fallback
+      }
+    }
   ]);
   const [pathData] = useState<PathPoint[]>(generateDummyPathData());
   const [sensorData, setSensorData] = useState<SensorData[]>([]);
@@ -88,7 +91,8 @@ const Index = () => {
 
   // Update currentTime based on drone video time
   useEffect(() => {
-    const videoElement = videoRefs.current["drone-1"];
+    console.log(videoRefs)
+    const videoElement = videoRefs.current["drones-1"];
     if (videoElement) {
       const handleTimeUpdate = () => {
         setCurrentTime(videoElement.currentTime);
@@ -144,9 +148,12 @@ const Index = () => {
 
   const handleViewChange = (feedId: string, view: ViewType) => {
     setFeeds((prevFeeds) =>
-      prevFeeds.map((feed) =>
-        feed.id === feedId ? { ...feed, currentView: view } : feed
-      )
+      prevFeeds.map((feed) => {
+        if (feed.id === feedId) {
+          return { ...feed, currentView: view };
+        }
+        return feed;
+      })
     );
   };
 
@@ -166,20 +173,19 @@ const Index = () => {
           {sectionFeeds.map((feed) => (
             <div key={feed.id} className="relative video-feed animate-fade-in">
               <video
-                ref={(el) => {
-                  videoRefs.current[feed.id] = el;
-                }}
-                src={feed.videoURL}
-                className={`rounded-lg w-full h-full ${
-                  feed.currentView !== "normal" ? "hidden" : ""
-                }`}
-                autoPlay
-                muted
-                style={{ transform: "scale(1.25)", transformOrigin: "center" }}
-              />
+  ref={(el) => {
+    videoRefs.current[feed.id] = el;
+  }}
+  src={feed.videoURLs[feed.currentView]}
+  key={feed.videoURLs[feed.currentView]} // Add key to force reload when source changes
+  className="rounded-lg w-full h-full"
+  autoPlay
+  muted
+  style={{ transform: "scale(1.28)", transformOrigin: "center" }}
+/>
               <div
                 className={`absolute inset-0 flex items-center justify-center ${
-                  feed.currentView === "normal" ? "hidden" : ""
+                  feed.currentView ? "hidden" : ""
                 }`}
               >
                 <Camera className="w-12 h-12 text-white/20" />
@@ -199,7 +205,7 @@ const Index = () => {
                   onClick={() => handleViewChange(feed.id, "thermal")}
                   className={`feed-button ${feed.currentView === "thermal" ? "active" : ""}`}
                 >
-                  <Wind className="w-4 h-4 inline-block mr-1" />
+                  <Camera className="w-4 h-4 inline-block mr-1" />
                   Thermal
                 </button>
                 <button
@@ -208,7 +214,7 @@ const Index = () => {
                     feed.currentView === "segmented" ? "active" : ""
                   }`}
                 >
-                  <Layers className="w-4 h-4 inline-block mr-1" />
+                  <Camera className="w-4 h-4 inline-block mr-1" />
                   Segmented
                 </button>
                 <button
@@ -217,7 +223,7 @@ const Index = () => {
                     feed.currentView === "augmented" ? "active" : ""
                   }`}
                 >
-                  <Eye className="w-4 h-4 inline-block mr-1" />
+                  <Camera className="w-4 h-4 inline-block mr-1" />
                   Augmented
                 </button>
               </div>
