@@ -262,6 +262,9 @@ export default function Page() {
     );
   };
 
+  <div className="border-t border-gray-800 my-12" />
+
+
   const renderPathTimeline = () => {
     const activeCount = pathData.filter((point) => currentTime >= point.time).length;
   
@@ -404,38 +407,69 @@ export default function Page() {
 
   return (
     <div className="min-h-screen p-6 animate-fade-in w-full">
-      {/* Updated Header with Logo on the left and Paper Live button on the right */}
-      <header className="mb-8 flex items-center justify-between w-full">
-          <img src="/logo.png" alt="Logo" className="h-10 mr-4" />
-          <div>
-            <h1 className="text-3xl font-bold text-white">PUSHPA Fire</h1>
-            <p className="text-slate-400">Real-time surveillance and monitoring system for the next generation of firefighters</p>
-          </div>
-          <button
-          onClick={scrollToPaper}
-          className="px-6 py-3 bg-primary text-white font-semibold rounded hover:bg-primary/80 transition-colors"
-        >
-          Paper Live
-        </button>
-      </header>
+  {/* Header */}
+  <header className="mb-8 flex items-center justify-between w-full">
+    <img src="/logo.png" alt="Logo" className="h-10 mr-4" />
+    <div>
+      <h1 className="text-3xl font-bold text-white">PUSHPA FIRE</h1>
+      <p className="text-slate-400">Real-time surveillance and monitoring system for the next generation of firefighters</p>
+    </div>
+    <button
+      onClick={scrollToPaper}
+      className="px-6 py-3 bg-primary text-white font-semibold rounded hover:bg-primary/80 transition-colors"
+    >
+      Research Paper
+    </button>
+  </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-8">
-          {renderFeedSection("glasses")}
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-white">Critical Path Timeline</h2>
-            {renderPathTimeline()}
-            <h2 className="text-xl font-semibold text-white mb-4">Sensor Analytics</h2>
-            {renderSensorDashboard()}
-          </div>
-        </div>
-        <div className="space-y-8">
-          {renderFeedSection("drone")}
-          {renderInteractiveSections()}
-        </div>
+  {/* Add divider after header */}
+  <div className="border-t border-gray-800 my-8" />
+
+  {/* Main content */}
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="space-y-8">
+      {renderFeedSection("glasses")}
+      <div className="space-y-6">
+        {/* Add divider after feeds */}
+        <div className="border-t border-gray-800 my-8" />
+        <h2 className="text-xl font-semibold text-white">Critical Path Timeline</h2>
+        {renderPathTimeline()}
+        <h2 className="text-xl font-semibold text-white mb-4">Sensor Analytics</h2>
+        {renderSensorDashboard()}
       </div>
+    </div>
+    <div className="space-y-8">
+      {renderFeedSection("drone")}
+      {/* Add divider after feeds */}
+      <div className="border-t border-gray-800 my-8" />
+      {renderInteractiveSections()}
+    </div>
+  </div>
+  
+  {/* Rest of the content remains the same */}
       <canvas ref={canvasRef} width="640" height="360" style={{ display: "none" }}></canvas>
+
+    
+<div className="border-t border-gray-800 my-12" />
+
+      {/* Demo Video Section */}
+<div className="mt-12 mb-12">
+  <h2 className="text-3xl font-bold text-white mb-4">Demo Video</h2>
+  <div className="aspect-w-10 aspect-h-9">
+    <iframe
+      src="https://www.youtube.com/embed/-p4GfOiM0GY"
+      title="PUSHPA Fire Demo Video"
+      className="w-full h-[600px] rounded-lg"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowFullScreen
+    ></iframe>
+  </div>
+</div>
+
+<div className="border-t border-gray-800 my-12" />
+
       
+
       {/* Research Paper Section */}
       <div ref={researchPaperRef} id="research-paper" className="mt-12">
         <h2 className="text-3xl font-bold text-white mb-4">Research Paper</h2>
