@@ -1,7 +1,5 @@
 # Welcome to NextGen Firefighter
 
-## Project info
-
 **URL**: https://nextgenfirefiighters.vercel.app/
 
 <img width="100%" style="width:100%" src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExOWRyZmppYmRuN2I3MGp6aDVpbmdrNmRneTJ4dTgwc3lmazVnYWVzeSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/VH1DDupIG9gVcJ92UD/giphy.gif">
