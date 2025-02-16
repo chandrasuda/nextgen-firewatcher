@@ -8,39 +8,27 @@
       "DOM.Iterable"
     ],
     "module": "ESNext",
-    "esModuleInterop": true,
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "allowJs": true,
-    "forceConsistentCasingInFileNames": true,
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
+    "types": ["node"],
     "paths": {
       "@/*": [
-        "src/*"
+        "./src/*"
       ]
     }
   },
   "include": [
-    "./dist/types/**/*.ts",
-    "./next-env.d.ts",
-    "./src",
-    ".next/types/**/*.ts"
+    "src",
+    "glasses-integration"
   ],
-  "exclude": [
-    "./node_modules"
-  ]
+  "references": [{ "path": "./tsconfig.node.json" }]
 }
