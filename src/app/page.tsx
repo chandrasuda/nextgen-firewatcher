@@ -85,8 +85,6 @@ const Index = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  // Ref for auto-scrolling ScrollArea
-  const pathScrollRef = useRef<HTMLDivElement>(null);
 
   // Update currentTime based on drone video time
   useEffect(() => {
@@ -235,44 +233,47 @@ const Index = () => {
     const activeCount = pathData.filter((point) => currentTime >= point.time).length;
   
     return (
-      <ScrollArea className="h-[300px] w-full rounded-lg bg-card p-4" style={{"flexDirection": "column-reverse"}} ref={pathScrollRef}>
+      <div className="w-full rounded-lg bg-card p-4">
         <div>
           {/* Counter header inside the scroll area */}
           <div className="sticky top-0 z-10 text-left bg-card p-2 font-bold text-large text-white">
             Total Events: {activeCount}
           </div>
-          <div className="space-y-4 mt-2">
-            {pathData.reverse().map((point) => (
+          <div className="mt-2 flex flex-col-reverse overflow-auto max-h-[200px]">
+            {pathData
+              .slice()
+              .reverse()
+              .map((point) => (
               <div
                 key={point.id}
-                className={`flex items-center p-3 rounded-lg transition-all animate-fade-in
-                  ${point.status === "critical" ? "bg-red-500/10" : 
-                     point.status === "explored" ? "bg-green-500/10" : "bg-blue-500/10"}
-                  ${currentTime >= point.time ? "highlight" : "hidden"}`}
+                className={`flex items-center my-2 p-3 rounded-lg transition-all animate-fade-in
+                ${point.status === "critical" ? "bg-red-500/10" : 
+                   point.status === "explored" ? "bg-green-500/10" : "bg-blue-500/10"}
+                ${currentTime >= point.time ? "highlight" : "hidden"}`}
               >
                 <div className="flex-shrink-0">
-                  <Navigation2
-                    className={`w-5 h-5 ${
-                      point.status === "critical"
-                        ? "text-red-500"
-                        : point.status === "explored"
-                        ? "text-green-500"
-                        : "text-blue-500"
-                    }`}
-                  />
+                <Navigation2
+                  className={`w-5 h-5 ${
+                  point.status === "critical"
+                    ? "text-red-500"
+                    : point.status === "explored"
+                    ? "text-green-500"
+                    : "text-blue-500"
+                  }`}
+                />
                 </div>
                 <div className="ml-4 flex-grow text-left">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-white">{point.location}</span>
-                    <span className="text-sm text-slate-400">{point.timestamp}</span>
-                  </div>
-                  <span className="text-sm text-slate-400 capitalize">{point.status}</span>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-white">{point.location}</span>
+                  <span className="text-sm text-slate-400">{point.timestamp}</span>
+                </div>
+                <span className="text-sm text-slate-400 capitalize">{point.status}</span>
                 </div>
               </div>
-            ))}
+              ))}
           </div>
         </div>
-      </ScrollArea>
+      </div>
     );
   };
   
