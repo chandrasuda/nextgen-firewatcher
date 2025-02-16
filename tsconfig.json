@@ -37,9 +37,10 @@
     ]
   },
   "include": [
+    "./dist/types/**/*.ts",
     "glasses-integration",
     "src",
-    "./dist/types/**/*.ts"
+    ".next/types/**/*.ts"
   ],
   "references": [
     {
