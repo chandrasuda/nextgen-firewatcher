@@ -122,7 +122,7 @@ function encodeImage($imagePath): string
 define("WHATSAPP_TOKEN", "YOUR_WHATSAPP_TOKEN"); // Get this from Facebook Developer Console
 define("WHATSAPP_SENDER_ID", "YOUR_WHATSAPP_PHONE_NUMBER_ID"); // Get this from debug.txt
 define("WHATSAPP_INCOMING_PHONE_NUMBER", "+1234567890"); // Your WhatsApp number
-define("OPENAI_KEY", "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");
+define("OPENAI_KEY", "OPENAI-Key");
 define("SAVE_IMAGE_PATH", "query_image.jpg");
 
 // Webhook verification
