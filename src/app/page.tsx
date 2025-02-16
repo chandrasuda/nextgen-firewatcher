@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import moment from "moment";
-import { Camera, Layers, Wind, Eye, Navigation2, Compass } from "lucide-react";
+import { Camera, Navigation2, Wind, Layers, Eye, Compass } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    ResponsiveContainer,
+    Tooltip,
 } from "recharts";
 
-type ViewType = "normal" | "thermal" | "segmented" | "depth" | "augmented";
+type ViewType = "normal" | "thermal" | "segmented" | "augmented";
 
 interface VideoFeed {
   id: string;
@@ -54,6 +54,51 @@ const generateDummyPathData = (): PathPoint[] => {
   ];
 };
 
+const tempDataPoints = [
+  { time: 3, temp: 100 },
+  { time: 7, temp: 350 },
+  { time: 10, temp: 450 },
+  { time: 12, temp: 200 },
+  { time: 15, temp: 600 },
+  { time: 17, temp: 300 },
+  { time: 20, temp: 750 },
+  { time: 22, temp: 700 },
+  { time: 24, temp: 650 },
+  { time: 27, temp: 550 },
+  { time: 30, temp: 450 },
+  { time: 35, temp: 400 },
+  { time: 40, temp: 380 },
+];
+
+function getTemperatureAtTime(t: number): number {
+  if (t <= tempDataPoints[0].time) return tempDataPoints[0].temp;
+  for (let i = 0; i < tempDataPoints.length - 1; i++) {
+    const current = tempDataPoints[i];
+    const next = tempDataPoints[i + 1];
+    if (t >= current.time && t <= next.time) {
+      const ratio = (t - current.time) / (next.time - current.time);
+      const interpolated = current.temp + ratio * (next.temp - current.temp);
+      const noise = Math.random() * 5 - 2.5; // ±2.5°F noise
+      return interpolated + noise;
+    }
+  }
+  const noise = Math.random() * 5 - 2.5;
+  return tempDataPoints[tempDataPoints.length - 1].temp + noise;
+}
+
+function getHeartRateAtTime(t: number): number {
+  // Map temperature to a heart rate between 70 and 150 BPM.
+  const temp = getTemperatureAtTime(t);
+  const minTemp = 100;
+  const maxTemp = 750;
+  const hrMin = 70;
+  const hrMax = 150;
+  const normalized = (temp - minTemp) / (maxTemp - minTemp);
+  const heartRate = hrMin + normalized * (hrMax - hrMin);
+  const noise = Math.random() * 4 - 2; // ±2 BPM noise
+  return Math.round(heartRate + noise);
+}
+
 const Index = () => {
   const [feeds, setFeeds] = useState<VideoFeed[]>([
     {
@@ -89,6 +134,13 @@ const Index = () => {
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement | null }>({});
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // A ref for the research paper anchor
+  const researchPaperRef = useRef<HTMLDivElement>(null);
+
+  const scrollToPaper = () => {
+    researchPaperRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
   // Update currentTime based on drone video time
   useEffect(() => {
     console.log(videoRefs)
@@ -105,46 +157,26 @@ const Index = () => {
   }, []);
 
   useEffect(() => {
-    // const videoElement = videoRefs.current["drone-1"];
-    // const canvasElement = canvasRef.current;
-    // const context = canvasElement?.getContext("2d");
-
-    // const analyzeFrame = () => {
-    //   if (videoElement && context && canvasElement) {
-    //     context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
-    //     const frame = context.getImageData(0, 0, canvasElement.width, canvasElement.height);
-    //     const brightness = calculateBrightness(frame.data);
-    //     generateSensorData(brightness, videoElement.currentTime);
-    //   }
-    //   requestAnimationFrame(analyzeFrame);
-    // };
-
-    // if (videoElement && context) {
-    //   requestAnimationFrame(analyzeFrame);
-    // }
+    const updateSensorData = () => {
+      const videoElement = videoRefs.current["drones-1"];
+      if (videoElement) {
+        const t = videoElement.currentTime;
+        const temperature = getTemperatureAtTime(t);
+        const heartRate = getHeartRateAtTime(t);
+        const timestamp = t * 1000;
+        // Use functional update so sensorData persists
+        setSensorData((prevData) => {
+          console.log('Sensor update:', { timestamp, temperature, heartRate });
+          return [...prevData, { timestamp, temperature, heartRate }];
+        });
+      }
+    };
+  
+    // Update continuously every second
+    const interval = setInterval(updateSensorData, 1000);
+    return () => clearInterval(interval);
   }, []);
 
-  const calculateBrightness = (data: Uint8ClampedArray) => {
-    let totalBrightness = 0;
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      const brightness = (r + g + b) / 3;
-      totalBrightness += brightness;
-    }
-    return totalBrightness / (data.length / 4);
-  };
-
-  const generateSensorData = (brightness: number, videoTime: number) => {
-    const temperature = brightness / 2; // Example calculation
-    const heartRate = brightness / 4; // Example calculation
-    const timestamp = videoTime * 1000; // Convert seconds to milliseconds
-    setSensorData((prevData) => [
-      ...prevData,
-      { timestamp, temperature, heartRate },
-    ]);
-  };
 
   const handleViewChange = (feedId: string, view: ViewType) => {
     setFeeds((prevFeeds) =>
@@ -328,11 +360,57 @@ const Index = () => {
     </div>
   );
 
+  const renderInteractiveSections = () => (
+    <div className="space-y-6 mt-8">
+      <div className="flex justify-end">
+        <button
+          onClick={scrollToPaper}
+          className="px-4 py-2 bg-primary text-white font-semibold rounded hover:bg-primary/80 transition-colors"
+        >
+          Paper Live
+        </button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* WhatsApp Live Videos Card */}
+        <div className="p-4 border rounded-lg shadow-lg bg-gray-900 hover:shadow-2xl transition-all transform hover:-translate-y-1">
+          <h3 className="text-xl font-bold text-white mb-2">WhatsApp Live Videos</h3>
+          <video 
+            src="https://docs.halokeys.com/media/user_upload/61ea770dff2c4a8cbcc5c238e3c806d3/whatsapp1.mp4" 
+            autoPlay muted loop 
+            className="w-full rounded mb-2"
+          />
+          <video 
+            src="https://docs.halokeys.com/media/user_upload/ae96f54397b840e88cdf87a63338d3f0/whatsapp2.mp4" 
+            autoPlay muted loop 
+            className="w-full rounded"
+          />
+        </div>
+        {/* Edge Compute Live Video Card */}
+        <div className="p-4 border rounded-lg shadow-lg bg-gray-900 hover:shadow-2xl transition-all transform hover:-translate-y-1">
+          <h3 className="text-xl font-bold text-white mb-2">Edge Compute Live Video</h3>
+          <video 
+            src="https://docs.halokeys.com/media/user_upload/fa4012fce297476385a73c2b25d87de2/edgecompute.mp4" 
+            autoPlay muted loop 
+            className="w-full rounded"
+          />
+        </div>
+        {/* Backend Stack Card */}
+        <div className="p-4 border rounded-lg shadow-lg bg-gray-900 hover:shadow-2xl transition-all transform hover:-translate-y-1">
+          <h3 className="text-xl font-bold text-white mb-2">Backend Technology Stack</h3>
+          <p className="text-slate-300">
+            Currently on our demo viewing platform. Our backend leverages edge compute, AI-core analytics, and live data feeds.
+            Read our research paper for a complete overview.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen p-6 animate-fade-in">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">PUSHPA Fire</h1>
-        <p className="text-slate-400">Real-time surveillance and monitoring system for the firefighters of tomorrow</p>
+        <h1 className="text-3xl font-bold text-white mb-2">NextGen Firefighters</h1>
+        <p className="text-slate-400">Real-time surveillance and monitoring system</p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -345,10 +423,25 @@ const Index = () => {
             {renderSensorDashboard()}
           </div>
         </div>
-
-        <div className="space-y-8">{renderFeedSection("drone")}</div>
+        <div className="space-y-8">
+          {renderFeedSection("drone")}
+          {renderInteractiveSections()}
+        </div>
       </div>
+      {/* Hidden canvas and other components remain unchanged */}
       <canvas ref={canvasRef} width="640" height="360" style={{ display: "none" }}></canvas>
+      
+      {/* Research Paper Section */}
+      <div ref={researchPaperRef} id="research-paper" className="mt-12">
+        <h2 className="text-3xl font-bold text-white mb-4">Research Paper</h2>
+        <div className="border rounded-lg overflow-hidden shadow-lg">
+          <iframe
+            src="/Article_Title.pdf"
+            className="w-full h-[1000px]" // Increased height to 1000px to make the paper look longer.
+            title="Research Paper"
+          ></iframe>
+        </div>
+      </div>
     </div>
   );
 };
