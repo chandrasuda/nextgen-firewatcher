@@ -52,9 +52,9 @@ const generateDummyPathData = (): PathPoint[] => {
 
 const Index = () => {
   const [feeds, setFeeds] = useState<VideoFeed[]>([
-    { id: "drone-1", name: "Drone Alpha", type: "drone", status: "online", currentView: "normal", videoUrl: "/rawfire.mp4" },
-    { id: "drone-2", name: "Drone Beta", type: "drone", status: "online", currentView: "normal", videoUrl: "/sam2_masked_video_1739673702786.mp4" },
-    { id: "glasses-1", name: "Team Leader", type: "glasses", status: "online", currentView: "normal", videoUrl: "/rawfire-VEED.mp4" },
+    { id: "drone-1", name: "Drone Alpha", type: "drone", status: "online", currentView: "normal", videoURL: "/rawfire.mp4" },
+    { id: "drone-2", name: "Drone Beta", type: "drone", status: "online", currentView: "normal", videoURL: "/sam2_masked_video_1739673702786.mp4" },
+    { id: "glasses-1", name: "Team Leader", type: "glasses", status: "online", currentView: "normal", videoURL: "/rawfire-VEED.mp4" },
   ]);
   const [pathData] = useState<PathPoint[]>(generateDummyPathData());
   const [sensorData, setSensorData] = useState<SensorData[]>([]);
@@ -82,10 +82,14 @@ const Index = () => {
 
     const analyzeFrame = () => {
       if (videoElement && context) {
-        context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
-        const frame = context.getImageData(0, 0, canvasElement.width, canvasElement.height);
+        if (canvasElement) {
+          context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+        }
+        if (canvasElement) {
+          const frame = context.getImageData(0, 0, canvasElement.width, canvasElement.height);
         const brightness = calculateBrightness(frame.data);
         generateSensorData(brightness, videoElement.currentTime);
+        }
       }
       requestAnimationFrame(analyzeFrame);
     };
@@ -141,8 +145,10 @@ const Index = () => {
         {sectionFeeds.map((feed) => (
   <div key={feed.id} className="video-feed animate-fade-in">
         <video
-          ref={(el) => (videoRefs.current[feed.id] = el)}
-          src={feed.videoUrl} // add the source here
+          ref={(el) => {
+            videoRefs.current[feed.id] = el;
+          }}
+          src={feed.videoURL} // add the source here
           className={`rounded-lg w-full h-full ${feed.currentView !== "normal" ? "hidden" : ""}`}
           autoPlay
           muted
