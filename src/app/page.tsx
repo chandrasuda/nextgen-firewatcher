@@ -331,8 +331,8 @@ const Index = () => {
   return (
     <div className="min-h-screen p-6 animate-fade-in">
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">NextGen Firefighters</h1>
-        <p className="text-slate-400">Real-time surveillance and monitoring system</p>
+        <h1 className="text-3xl font-bold text-white mb-2">PUSHPA Fire</h1>
+        <p className="text-slate-400">Real-time surveillance and monitoring system for the firefighters of tomorrow</p>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
