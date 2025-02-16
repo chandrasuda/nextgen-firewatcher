@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import moment from "moment";
 import { Camera, Navigation2, Wind, Layers, Eye, Compass } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
     LineChart,
     Line,
@@ -79,7 +78,7 @@ function getTemperatureAtTime(t: number): number {
       const ratio = (t - current.time) / (next.time - current.time);
       const interpolated = current.temp + ratio * (next.temp - current.temp);
       const noise = Math.random() * 5 - 2.5; // ±2.5°F noise
-      return interpolated + noise;
+      return Math.round(interpolated + noise);
     }
   }
   const noise = Math.random() * 5 - 2.5;
@@ -87,19 +86,20 @@ function getTemperatureAtTime(t: number): number {
 }
 
 function getHeartRateAtTime(t: number): number {
-  // Map temperature to a heart rate between 70 and 150 BPM.
-  const temp = getTemperatureAtTime(t);
-  const minTemp = 100;
-  const maxTemp = 750;
-  const hrMin = 70;
-  const hrMax = 150;
-  const normalized = (temp - minTemp) / (maxTemp - minTemp);
-  const heartRate = hrMin + normalized * (hrMax - hrMin);
-  const noise = Math.random() * 4 - 2; // ±2 BPM noise
-  return Math.round(heartRate + noise);
+  // Very smooth, slow-changing base heart rate
+  const baseHR = 85 + 
+    12 * Math.sin(t * 0.1) +  // Very slow primary oscillation (120 sec period)
+    6 * Math.sin(t * 0.15) +   // Even slower secondary variation (300 sec period)
+    3 * Math.sin(t * 0.2);     // Slight faster variation for natural feel
+
+  // Tiny amount of noise for organic feel
+  const noise = Math.sin(t * 0.8) * 0.5; // Smooth, continuous variation
+
+  // Keep heart rate in a realistic range
+  return Math.min(130, Math.max(75, Math.round(baseHR + noise)));
 }
 
-const Index = () => {
+export default function Page() {
   const [feeds, setFeeds] = useState<VideoFeed[]>([
     {
       id: "glasses-1",
@@ -111,8 +111,8 @@ const Index = () => {
         thermal: "https://halokeys.com/media/user_upload/de3ce92f1b4c44329b4483c68868c321/rawfire-VEED.mp4",
         segmented: "https://halokeys.com/media/user_upload/fceafdc9c8044418b90aa950ffafb923/sam2_masked_video_1739673702786.mp4",
         normal: "https://halokeys.com/media/user_upload/283e769660a644798f0eb091a662813e/rawfire.mp4",
-        augmented: "https://halokeys.com/media/user_upload/de3ce92f1b4c44329b4483c68868c321/rawfire-VEED.mp4"
-      }
+        augmented: "https://halokeys.com/media/user_upload/de3ce92f1b4c44329b4483c68868c321/rawfire-VEED.mp4",
+      },
     }, 
     {
       id: "drones-1",
@@ -124,9 +124,9 @@ const Index = () => {
         thermal: "https://docs.halokeys.com/media/user_upload/e41fc88fb52a43acbf3d90b46d388ed5/drone_view_2-VEED.mp4",
         segmented: "https://halokeys.com/media/user_upload/fceafdc9c8044418b90aa950ffafb923/sam2_masked_video_1739673702786.mp4",
         normal: "https://docs.halokeys.com/media/user_upload/012a7571c6b44e4f9090290c673ad413/drone_view_2.mp4",
-        augmented: "https://halokeys.com/media/user_upload/de3ce92f1b4c44329b4483c68868c321/rawfire-VEED.mp4"
-      }
-    }
+        augmented: "https://halokeys.com/media/user_upload/de3ce92f1b4c44329b4483c68868c321/rawfire-VEED.mp4",
+      },
+    },
   ]);
   const [pathData] = useState<PathPoint[]>(generateDummyPathData());
   const [sensorData, setSensorData] = useState<SensorData[]>([]);
@@ -154,37 +154,28 @@ const Index = () => {
       };
     }
   }, []);
+  
 
-  // Sensor update effect that continuously appends new data.
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
-    const startSensorUpdates = () => {
-      interval = setInterval(() => {
-        const videoElement = videoRefs.current["drones-1"];
-        if (videoElement) {
-          const t = videoElement.currentTime;
-          const temperature = getTemperatureAtTime(t);
-          const heartRate = getHeartRateAtTime(t);
-          const timestamp = t * 1000;
-          console.log("Sensor update", { timestamp, temperature, heartRate });
-          setSensorData((prevData) => [...prevData, { temperature, heartRate, timestamp }]);
-        }
-      }, 1000);
-    };
-  
-    // Wait until the video element is available.
-    const checkVideoInterval = setInterval(() => {
-      if (videoRefs.current["drones-1"]) {
-        clearInterval(checkVideoInterval);
-        startSensorUpdates();
+    const videoElement = videoRefs.current["drones-1"];
+    const canvasElement = canvasRef.current;
+    const context = canvasElement?.getContext("2d");
+
+    const analyzeFrame = () => {
+      if (videoElement && context && canvasElement) {
+        context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+        const temperature = getTemperatureAtTime(videoElement.currentTime);
+        const heartRate = getHeartRateAtTime(videoElement.currentTime);
+        const timestamp = videoElement.currentTime * 1000;
+        console.log({ temperature, heartRate, timestamp })
+        setSensorData((prevData) => [...prevData, { temperature, heartRate, timestamp }]);
       }
-    }, 500);
-  
-    return () => {
-      clearInterval(checkVideoInterval);
-      clearInterval(interval);
+      requestAnimationFrame(analyzeFrame);
     };
+
+    if (videoElement && context) {
+      requestAnimationFrame(analyzeFrame);
+    }
   }, []);
 
   const handleViewChange = (feedId: string, view: ViewType) => {
@@ -458,6 +449,4 @@ const Index = () => {
       </div>
     </div>
   );
-};
-
-export default Index;
+}
