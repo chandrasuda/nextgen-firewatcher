@@ -27,7 +27,7 @@ interface GPTResponse {
   }>;
 }
 
-class MetaVisionService {
+export class MetaVisionService {
   private openAiKey: string
 
   constructor(openAiKey: string) {
@@ -71,11 +71,4 @@ class MetaVisionService {
 }
 
 // Create and export the service instance
-export const metaVisionService = new MetaVisionService(process.env.OPENAI_API_KEY || '')
-
-// Change to CommonJS style exports
-export = {
-  metaVisionService,
-  MetaGlassesDevice,
-  MetaVisionStream
-}; 
+export const metaVisionService = new MetaVisionService(process.env.OPENAI_API_KEY || '') 
