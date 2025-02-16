@@ -111,7 +111,7 @@ const Index = () => {
         thermal: "https://halokeys.com/media/user_upload/de3ce92f1b4c44329b4483c68868c321/rawfire-VEED.mp4",
         segmented: "https://halokeys.com/media/user_upload/fceafdc9c8044418b90aa950ffafb923/sam2_masked_video_1739673702786.mp4",
         normal: "https://halokeys.com/media/user_upload/283e769660a644798f0eb091a662813e/rawfire.mp4",
-        augmented: "https://halokeys.com/media/user_upload/de3ce92f1b4c44329b4483c68868c321/rawfire-VEED.mp4" // Using normal video as fallback
+        augmented: "https://halokeys.com/media/user_upload/de3ce92f1b4c44329b4483c68868c321/rawfire-VEED.mp4"
       }
     }, 
     {
@@ -124,7 +124,7 @@ const Index = () => {
         thermal: "https://docs.halokeys.com/media/user_upload/e41fc88fb52a43acbf3d90b46d388ed5/drone_view_2-VEED.mp4",
         segmented: "https://halokeys.com/media/user_upload/fceafdc9c8044418b90aa950ffafb923/sam2_masked_video_1739673702786.mp4",
         normal: "https://docs.halokeys.com/media/user_upload/012a7571c6b44e4f9090290c673ad413/drone_view_2.mp4",
-        augmented: "https://halokeys.com/media/user_upload/de3ce92f1b4c44329b4483c68868c321/rawfire-VEED.mp4" // Using normal video as fallback
+        augmented: "https://halokeys.com/media/user_upload/de3ce92f1b4c44329b4483c68868c321/rawfire-VEED.mp4"
       }
     }
   ]);
@@ -143,7 +143,6 @@ const Index = () => {
 
   // Update currentTime based on drone video time
   useEffect(() => {
-    console.log(videoRefs)
     const videoElement = videoRefs.current["drones-1"];
     if (videoElement) {
       const handleTimeUpdate = () => {
@@ -156,27 +155,37 @@ const Index = () => {
     }
   }, []);
 
+  // Sensor update effect that continuously appends new data.
   useEffect(() => {
-    const updateSensorData = () => {
-      const videoElement = videoRefs.current["drones-1"];
-      if (videoElement) {
-        const t = videoElement.currentTime;
-        const temperature = getTemperatureAtTime(t);
-        const heartRate = getHeartRateAtTime(t);
-        const timestamp = t * 1000;
-        // Use functional update so sensorData persists
-        setSensorData((prevData) => {
-          console.log('Sensor update:', { timestamp, temperature, heartRate });
-          return [...prevData, { timestamp, temperature, heartRate }];
-        });
-      }
+    let interval: NodeJS.Timeout;
+    
+    const startSensorUpdates = () => {
+      interval = setInterval(() => {
+        const videoElement = videoRefs.current["drones-1"];
+        if (videoElement) {
+          const t = videoElement.currentTime;
+          const temperature = getTemperatureAtTime(t);
+          const heartRate = getHeartRateAtTime(t);
+          const timestamp = t * 1000;
+          console.log("Sensor update", { timestamp, temperature, heartRate });
+          setSensorData((prevData) => [...prevData, { temperature, heartRate, timestamp }]);
+        }
+      }, 1000);
     };
   
-    // Update continuously every second
-    const interval = setInterval(updateSensorData, 1000);
-    return () => clearInterval(interval);
+    // Wait until the video element is available.
+    const checkVideoInterval = setInterval(() => {
+      if (videoRefs.current["drones-1"]) {
+        clearInterval(checkVideoInterval);
+        startSensorUpdates();
+      }
+    }, 500);
+  
+    return () => {
+      clearInterval(checkVideoInterval);
+      clearInterval(interval);
+    };
   }, []);
-
 
   const handleViewChange = (feedId: string, view: ViewType) => {
     setFeeds((prevFeeds) =>
@@ -205,16 +214,16 @@ const Index = () => {
           {sectionFeeds.map((feed) => (
             <div key={feed.id} className="relative video-feed animate-fade-in">
               <video
-  ref={(el) => {
-    videoRefs.current[feed.id] = el;
-  }}
-  src={feed.videoURLs[feed.currentView]}
-  key={feed.videoURLs[feed.currentView]} // Add key to force reload when source changes
-  className="rounded-lg w-full h-full"
-  autoPlay
-  muted
-  style={{ transform: "scale(1.28)", transformOrigin: "center" }}
-/>
+                ref={(el) => {
+                  videoRefs.current[feed.id] = el;
+                }}
+                src={feed.videoURLs[feed.currentView]}
+                key={feed.videoURLs[feed.currentView]} // force reload when source changes
+                className="rounded-lg w-full h-full"
+                autoPlay
+                muted
+                style={{ transform: "scale(1.28)", transformOrigin: "center" }}
+              />
               <div
                 className={`absolute inset-0 flex items-center justify-center ${
                   feed.currentView ? "hidden" : ""
@@ -242,18 +251,14 @@ const Index = () => {
                 </button>
                 <button
                   onClick={() => handleViewChange(feed.id, "segmented")}
-                  className={`feed-button ${
-                    feed.currentView === "segmented" ? "active" : ""
-                  }`}
+                  className={`feed-button ${feed.currentView === "segmented" ? "active" : ""}`}
                 >
                   <Camera className="w-4 h-4 inline-block mr-1" />
                   Segmented
                 </button>
                 <button
                   onClick={() => handleViewChange(feed.id, "augmented")}
-                  className={`feed-button ${
-                    feed.currentView === "augmented" ? "active" : ""
-                  }`}
+                  className={`feed-button ${feed.currentView === "augmented" ? "active" : ""}`}
                 >
                   <Camera className="w-4 h-4 inline-block mr-1" />
                   Augmented
@@ -267,21 +272,18 @@ const Index = () => {
   };
 
   const renderPathTimeline = () => {
-    // Count only events that are active (visible)
     const activeCount = pathData.filter((point) => currentTime >= point.time).length;
   
     return (
       <div className="w-full rounded-lg bg-card p-4">
-        <div>
-          {/* Counter header inside the scroll area */}
-          <div className="sticky top-0 z-10 text-left bg-card p-2 font-bold text-large text-white">
-            Total Events: {activeCount}
-          </div>
-          <div className="mt-2 flex flex-col-reverse overflow-auto max-h-[200px]">
-            {pathData
-              .slice()
-              .reverse()
-              .map((point) => (
+        <div className="sticky top-0 z-10 text-left bg-card p-2 font-bold text-large text-white">
+          Total Events: {activeCount}
+        </div>
+        <div className="mt-2 flex flex-col-reverse overflow-auto max-h-[200px]">
+          {pathData
+            .slice()
+            .reverse()
+            .map((point) => (
               <div
                 key={point.id}
                 className={`flex items-center my-2 p-3 rounded-lg transition-all animate-fade-in
@@ -290,32 +292,30 @@ const Index = () => {
                 ${currentTime >= point.time ? "highlight" : "hidden"}`}
               >
                 <div className="flex-shrink-0">
-                <Navigation2
-                  className={`w-5 h-5 ${
-                  point.status === "critical"
-                    ? "text-red-500"
-                    : point.status === "explored"
-                    ? "text-green-500"
-                    : "text-blue-500"
-                  }`}
-                />
+                  <Navigation2
+                    className={`w-5 h-5 ${
+                      point.status === "critical"
+                        ? "text-red-500"
+                        : point.status === "explored"
+                        ? "text-green-500"
+                        : "text-blue-500"
+                    }`}
+                  />
                 </div>
                 <div className="ml-4 flex-grow text-left">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium text-white">{point.location}</span>
-                  <span className="text-sm text-slate-400">{point.timestamp}</span>
-                </div>
-                <span className="text-sm text-slate-400 capitalize">{point.status}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-white">{point.location}</span>
+                    <span className="text-sm text-slate-400">{point.timestamp}</span>
+                  </div>
+                  <span className="text-sm text-slate-400 capitalize">{point.status}</span>
                 </div>
               </div>
-              ))}
-          </div>
+            ))}
         </div>
       </div>
     );
   };
   
-
   const renderSensorDashboard = () => (
     <div className="grid grid-cols-1 gap-6 mt-6">
       <div className="bg-card rounded-lg p-4">
@@ -362,14 +362,6 @@ const Index = () => {
 
   const renderInteractiveSections = () => (
     <div className="space-y-6 mt-8">
-      <div className="flex justify-end">
-        <button
-          onClick={scrollToPaper}
-          className="px-4 py-2 bg-primary text-white font-semibold rounded hover:bg-primary/80 transition-colors"
-        >
-          Paper Live
-        </button>
-      </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* WhatsApp Live Videos Card */}
         <div className="p-4 border rounded-lg shadow-lg bg-gray-900 hover:shadow-2xl transition-all transform hover:-translate-y-1">
@@ -377,7 +369,7 @@ const Index = () => {
           <video 
             src="https://docs.halokeys.com/media/user_upload/61ea770dff2c4a8cbcc5c238e3c806d3/whatsapp1.mp4" 
             autoPlay muted loop 
-            className="w-full rounded mb-2"
+            className="w-full rounded mb-4"
           />
           <video 
             src="https://docs.halokeys.com/media/user_upload/ae96f54397b840e88cdf87a63338d3f0/whatsapp2.mp4" 
@@ -394,23 +386,46 @@ const Index = () => {
             className="w-full rounded"
           />
         </div>
-        {/* Backend Stack Card */}
+        {/* Backend Technology Stack Card */}
         <div className="p-4 border rounded-lg shadow-lg bg-gray-900 hover:shadow-2xl transition-all transform hover:-translate-y-1">
           <h3 className="text-xl font-bold text-white mb-2">Backend Technology Stack</h3>
           <p className="text-slate-300">
-            Currently on our demo viewing platform. Our backend leverages edge compute, AI-core analytics, and live data feeds.
-            Read our research paper for a complete overview.
+            Currently on our demo viewing platform.
           </p>
+          <div className="mt-2 space-y-2">
+            <div className="p-2 bg-gray-900 rounded hover:bg-gray-800 transition-colors">
+              <h4 className="text-lg font-semibold text-white">Edge Compute</h4>
+              <p className="text-xs text-gray-300">Utilizes edge compute for rapid data processing.</p>
+            </div>
+            <div className="p-2 bg-gray-900 rounded hover:bg-gray-800 transition-colors">
+              <h4 className="text-lg font-semibold text-white">AI Analytics</h4>
+              <p className="text-xs text-gray-300">Incorporates AI-core analytics for smart alerting.</p>
+            </div>
+            <div className="p-2 bg-gray-900 rounded hover:bg-gray-800 transition-colors">
+              <h4 className="text-lg font-semibold text-white">Live Data Feeds</h4>
+              <p className="text-xs text-gray-300">Feeds live sensor and video data to operators.</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen p-6 animate-fade-in">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">NextGen Firefighters</h1>
-        <p className="text-slate-400">Real-time surveillance and monitoring system</p>
+    <div className="min-h-screen p-6 animate-fade-in w-full">
+      {/* Updated Header with Logo on the left and Paper Live button on the right */}
+      <header className="mb-8 flex items-center justify-between w-full">
+          <img src="/logo.png" alt="Logo" className="h-10 mr-4" />
+          <div>
+            <h1 className="text-3xl font-bold text-white">PUSHPA Fire</h1>
+            <p className="text-slate-400">Real-time surveillance and monitoring system for the next generation of firefighters</p>
+          </div>
+          <button
+          onClick={scrollToPaper}
+          className="px-6 py-3 bg-primary text-white font-semibold rounded hover:bg-primary/80 transition-colors"
+        >
+          Paper Live
+        </button>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -428,7 +443,6 @@ const Index = () => {
           {renderInteractiveSections()}
         </div>
       </div>
-      {/* Hidden canvas and other components remain unchanged */}
       <canvas ref={canvasRef} width="640" height="360" style={{ display: "none" }}></canvas>
       
       {/* Research Paper Section */}
@@ -437,7 +451,7 @@ const Index = () => {
         <div className="border rounded-lg overflow-hidden shadow-lg">
           <iframe
             src="/Article_Title.pdf"
-            className="w-full h-[1000px]" // Increased height to 1000px to make the paper look longer.
+            className="w-full h-[1000px]"
             title="Research Paper"
           ></iframe>
         </div>
